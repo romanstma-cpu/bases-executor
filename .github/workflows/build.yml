@@ -9,32 +9,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install MinGW
+      - name: Install MinGW/MSYS2
         uses: msys2/setup-msys2@v2
         with:
           msystem: UCRT64
+          update: true
           install: >-
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-make
             mingw-w64-x86_64-lua51
 
-      - name: Configure with MinGW
+      - name: Configure
+        shell: msys2 {0}
         run: |
-          C:/msys64/ucrt64/usr/bin/cmake.exe -B build -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release
+          cmake -B build -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
-        run: cmake --build build --config Release
+        shell: msys2 {0}
+        run: |
+          cmake --build build --config Release
 
-      - name: Add patterns JSON
+      - name: Package
+        shell: msys2 {0}
         run: |
           echo '{"datamodel":"48 8B 0D ?? ?? ?? ?? 48 8B 01","scheduler":"48 8D 05 ?? ?? ?? ?? 48 89 05"}' > build/Release/unc_patterns.json
-
-      - name: Zip output
-        run: |
           cd build/Release
-          ls -la bases_executor* || echo "No exe found"
-          7z a bases-executor.zip bases_executor.exe unc_patterns.json
+          zip bases-executor.zip bases_executor.exe unc_patterns.json || ls -la
 
       - uses: actions/upload-artifact@v4
         with:
