@@ -4,22 +4,14 @@ project(BasesExecutor LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Disable MSVC security features that cause guardcfw.h issues
 if(MSVC)
-    add_compile_options(
-        /GS-           # Disable buffer security check
-        /guard:cf-     # Disable Control Flow Guard
-        /guard:no      # Alternative flag
-        /GS-
-        /O2 /Ob2 /GL
-        /subsystem:console
-    )
+    add_compile_options(/GS- /guard:cf- /O2 /Ob2 /GL)
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /OPT:REF /OPT:ICF /INCREMENTAL:NO /DEBUG:NONE")
 endif()
 
-# Lua 5.1 source in-tree
 set(LUA_SRC "${CMAKE_SOURCE_DIR}/lua-5.1.5/src")
 
+# Create stub Lua library (pre-compiled would be better but this compiles)
 add_library(lua51_lib STATIC
     ${LUA_SRC}/lapi.c ${LUA_SRC}/lauxlib.c ${LUA_SRC}/lbaselib.c
     ${LUA_SRC}/lcode.c ${LUA_SRC}/ldblib.c ${LUA_SRC}/ldebug.c ${LUA_SRC}/ldo.c
@@ -31,27 +23,13 @@ add_library(lua51_lib STATIC
     ${LUA_SRC}/lvm.c ${LUA_SRC}/lzio.c
 )
 target_include_directories(lua51_lib PUBLIC ${LUA_SRC})
-target_compile_definitions(lua51_lib PUBLIC LUA_USE_WINDOWS)
+target_compile_definitions(lua51_lib PUBLIC LUA_USE_WINDOWS _CRT_SECURE_NO_WARNINGS guardcfw_h)
 
-# Source files - use explicit file list to avoid glob issues
-add_executable(bases_executor
-    src/main.cpp
-    src/manualmap.cpp
-    src/peb.cpp
-    src/process.cpp
-    src/rbx.cpp
-    src/sunc.cpp
-    src/syscall.cpp
-    src/unpacker_stub.cpp
-)
+file(GLOB EXEC_SOURCES CONFIGURE_DEPENDS src/*.cpp)
+add_executable(bases_executor ${EXEC_SOURCES})
 target_include_directories(bases_executor PRIVATE include ${LUA_SRC})
 target_link_libraries(bases_executor PRIVATE lua51_lib)
-target_compile_definitions(bases_executor PRIVATE
-    UNICODE _UNICODE
-    _CRT_SECURE_NO_WARNINGS
-    _ALLOW_ITERABLE_DEBUGGING=0
-    _ITERATOR_DEBUG_LEVEL=0
-)
+target_compile_definitions(bases_executor PRIVATE UNICODE _UNICODE _CRT_SECURE_NO_WARNINGS guardcfw_h)
 if(MSVC)
-    target_link_options(bases_executor PRIVATE /ENTRY:mainCRTStartup /NODEFAULTLIB:guard.lib)
+    target_link_options(bases_executor PRIVATE /ENTRY:mainCRTStartup)
 endif()
