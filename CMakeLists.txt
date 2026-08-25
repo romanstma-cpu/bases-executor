@@ -4,9 +4,16 @@ project(BasesExecutor LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Hardening
+# Disable MSVC security features that cause guardcfw.h issues
 if(MSVC)
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 /Ob2 /GL /GS- /guard:no")
+    add_compile_options(
+        /GS-           # Disable buffer security check
+        /guard:cf-     # Disable Control Flow Guard
+        /guard:no      # Alternative flag
+        /GS-
+        /O2 /Ob2 /GL
+        /subsystem:console
+    )
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /OPT:REF /OPT:ICF /INCREMENTAL:NO /DEBUG:NONE")
 endif()
 
@@ -26,12 +33,25 @@ add_library(lua51_lib STATIC
 target_include_directories(lua51_lib PUBLIC ${LUA_SRC})
 target_compile_definitions(lua51_lib PUBLIC LUA_USE_WINDOWS)
 
-# Source files
-file(GLOB_RECURSE EXEC_SRC CONFIGURE_DEPENDS src/*.cpp)
-add_executable(bases_executor ${EXEC_SRC})
+# Source files - use explicit file list to avoid glob issues
+add_executable(bases_executor
+    src/main.cpp
+    src/manualmap.cpp
+    src/peb.cpp
+    src/process.cpp
+    src/rbx.cpp
+    src/sunc.cpp
+    src/syscall.cpp
+    src/unpacker_stub.cpp
+)
 target_include_directories(bases_executor PRIVATE include ${LUA_SRC})
 target_link_libraries(bases_executor PRIVATE lua51_lib)
-target_compile_definitions(bases_executor PRIVATE UNICODE _UNICODE)
+target_compile_definitions(bases_executor PRIVATE
+    UNICODE _UNICODE
+    _CRT_SECURE_NO_WARNINGS
+    _ALLOW_ITERABLE_DEBUGGING=0
+    _ITERATOR_DEBUG_LEVEL=0
+)
 if(MSVC)
-    target_link_options(bases_executor PRIVATE /ENTRY:mainCRTStartup)
+    target_link_options(bases_executor PRIVATE /ENTRY:mainCRTStartup /NODEFAULTLIB:guard.lib)
 endif()

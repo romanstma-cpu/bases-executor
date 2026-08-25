@@ -1,4 +1,4 @@
-// peb.cpp - PEB self-sanitization.
+// peb.cpp - PEB self-sanitization
 #include "peb.h"
 #include <windows.h>
 

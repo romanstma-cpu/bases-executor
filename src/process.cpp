@@ -1,4 +1,4 @@
-// process.cpp - locate Roblox client.
+// process.cpp - locate Roblox client
 #include "process.h"
 #include "obf.h"
 #include <windows.h>
@@ -22,7 +22,7 @@ namespace proc {
             do {
                 if (pe.th32ProcessID == ppid) {
                     CloseHandle(snap);
-                    return _stricmp(pe.szExeFile, "explorer.exe") == 0;
+                    return strcmp(pe.szExeFile, "explorer.exe") == 0;
                 }
             } while (Process32Next(snap, &pe));
         }

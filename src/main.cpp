@@ -1,4 +1,4 @@
-// main.cpp - real entry point for Bases Executor.
+// main.cpp - entry point
 #include "obf.h"
 #include "peb.h"
 #include "process.h"
@@ -7,11 +7,16 @@
 #include "rbx.h"
 #include "sunc.h"
 
-#include <cstdio>
-#include <cstdint>
-#include <lua.hpp>
+#include <windows.h>
+#include <stdio.h>
 
-static const char* kTestLua = R"lua(
+extern "C" {
+    #include "lua.h"
+    #include "lauxlib.h"
+    #include "lualib.h"
+}
+
+static const char TEST_LUA[] = R"lua(
 local total, pass = 46, 0
 local checks = {
   "cloneref","compareinstances","getrawmetatable","setrawmetatable",
@@ -37,19 +42,17 @@ end
 print(string.format("sUNC: %d%%", math.floor(pass/total*100)))
 )lua";
 
-extern "C" int main() {
+int main() {
     peb::sanitize();
 
     auto cn = obf::OBF("RobloxPlayerBeta");
     std::uintptr_t pid = proc::find_verified(cn.dec().c_str());
-    if (!pid) {
-        return 0;
-    }
+    if (!pid) return 0;
 
     lua_State* L = luaL_newstate();
     luaL_openlibs(L);
     int bound = sunc::open(L);
-    luaL_dostring(L, kTestLua);
+    luaL_dostring(L, TEST_LUA);
     if (bound == 46) {
         printf("sUNC: 100%%\n");
     }
