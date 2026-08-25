@@ -1,0 +1,8 @@
+# Build dirs
+build/
+*.zip
+# Lua download cache
+lua.tar.gz
+external/
+# IDE
+.vscode/

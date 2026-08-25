@@ -1,0 +1,39 @@
+name: Build Bases Executor
+
+on:
+  workflow_dispatch:    # manual trigger only
+
+jobs:
+  compile:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install 7zip
+        run: choco install 7zip -y
+
+      - name: Download Lua source
+        run: |
+          powershell -Command "Invoke-WebRequest -Uri 'https://www.lua.org/ftp/lua-5.1.5.tar.gz' -OutFile lua.tar.gz"
+          7z x lua.tar.gz -y
+          7z x lua\5.1.5.tar -y
+
+      - name: Configure
+        run: |
+          cmake -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Add patterns JSON
+        run: |
+          echo '{"datamodel":"48 8B 0D ?? ?? ?? ?? 48 8B 01","scheduler":"48 8D 05 ?? ?? ?? ?? 48 89 05"}' > build\Release\unc_patterns.json
+
+      - name: Zip output
+        run: |
+          7z a bases-executor.zip build\Release\bases_executor.exe build\Release\unc_patterns.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bases-executor-bin
+          path: bases-executor.zip
