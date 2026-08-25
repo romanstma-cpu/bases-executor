@@ -9,25 +9,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install 7zip
-        run: choco install 7zip -y
+      - name: Install MinGW
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-make
+            mingw-w64-x86_64-lua51
 
-      - name: Configure
+      - name: Configure with MinGW
         run: |
-          cmake -B build -G "Visual Studio 17 2022" -A x64
+          C:/msys64/ucrt64/usr/bin/cmake.exe -B build -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build --config Release
 
       - name: Add patterns JSON
         run: |
-          echo '{"datamodel":"48 8B 0D ?? ?? ?? ?? 48 8B 01","scheduler":"48 8D 05 ?? ?? ?? ?? 48 89 05"}' > build\Release\unc_patterns.json
+          echo '{"datamodel":"48 8B 0D ?? ?? ?? ?? 48 8B 01","scheduler":"48 8D 05 ?? ?? ?? ?? 48 89 05"}' > build/Release/unc_patterns.json
 
       - name: Zip output
         run: |
-          7z a bases-executor.zip build\Release\bases_executor.exe build\Release\unc_patterns.json
+          cd build/Release
+          ls -la bases_executor* || echo "No exe found"
+          7z a bases-executor.zip bases_executor.exe unc_patterns.json
 
       - uses: actions/upload-artifact@v4
         with:
           name: bases-executor-bin
-          path: bases-executor.zip
+          path: build/Release/bases-executor.zip
