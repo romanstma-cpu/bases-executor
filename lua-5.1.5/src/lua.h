@@ -9,6 +9,11 @@
 #ifndef lua_h
 #define lua_h
 
+/* Skip MSVC Control Flow Guard headers (GitHub SDK change) */
+#ifndef guardcfw_h
+#define guardcfw_h
+#endif
+
 #include <stdarg.h>
 #include <stddef.h>
 
