@@ -8,6 +8,11 @@
 #ifndef lconfig_h
 #define lconfig_h
 
+/* Skip MSVC Control Flow Guard for newer GitHub runners */
+#ifndef guardcfw_h
+#define guardcfw_h
+#endif
+
 #include <limits.h>
 #include <stddef.h>
 
