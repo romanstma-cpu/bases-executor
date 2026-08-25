@@ -1,6 +1,4 @@
-// main.cpp - real entry. Sanitizes PEB, locates + verifies client, manual-maps
-// the Lua payload, opens the full sUNC table, then runs test_sunc.lua and prints
-// the sUNC percentage. Entry is the unpacker stub's call target (see .asm).
+// main.cpp - real entry point for Bases Executor.
 #include "obf.h"
 #include "peb.h"
 #include "process.h"
@@ -8,13 +6,12 @@
 #include "syscall.h"
 #include "rbx.h"
 #include "sunc.h"
-#include <lua.hpp>
-#include <windows.h>
-#include <cstdio>
 
-// Embedded self-test (compiled in). Mirrors test_sunc.lua; run as a fallback
-// so the exe prints its own score even without the external script.
-static const char* kTestLua = R"LUA(
+#include <cstdio>
+#include <cstdint>
+#include <lua.hpp>
+
+static const char* kTestLua = R"lua(
 local total, pass = 46, 0
 local checks = {
   "cloneref","compareinstances","getrawmetatable","setrawmetatable",
@@ -26,31 +23,35 @@ local checks = {
   "fireclickdetector","isnetworkowner","getexploitidentity","queue_on_teleport",
   "setfflag","saveinstance","crypt.encrypt","crypt.decrypt","crypt.hash",
   "crypt.base64encode","request","websocket.connect","debug.info",
-  "debug.getupvalues","debug.setupvalue","debug.getregistry","debug.getmetatable",
-  "debug.setmetatable"
+  "debug.getupvalues","debug.setupvalue","debug.getregistry",
+  "debug.getmetatable","debug.setmetatable"
 }
 for _, name in ipairs(checks) do
-  local ok, f = pcall(function() return _G[name] end)
-  if ok and type(f) == "function" then pass = pass + 1
-  else print("FAIL "..name) end
+  local ok = pcall(function() return _G[name] end)
+  if ok and type(_G[name]) == "function" then
+    pass = pass + 1
+  else
+    print("FAIL "..name)
+  end
 end
 print(string.format("sUNC: %d%%", math.floor(pass/total*100)))
-LUA";
+)lua";
 
-extern "C" void real_entry() {
-    peb::sanitize();                       // wipe our loader artifacts
+extern "C" int main() {
+    peb::sanitize();
+
     auto cn = obf::OBF("RobloxPlayerBeta");
-    uintptr_t pid = proc::find_verified(cn.dec().c_str());
+    std::uintptr_t pid = proc::find_verified(cn.dec().c_str());
     if (!pid) {
-        // no verified client running -> exit silently (no error dialog = stealth)
-        ExitProcess(0);
+        return 0;
     }
-    // spin up embedded Lua 5.1 with the rbx bridge
+
     lua_State* L = luaL_newstate();
     luaL_openlibs(L);
-    int bound = sunc::open(L);             // bind all UNC functions
-    // point rbx scanner at the live client module
-    rbx::safe_lua(L, kTestLua, strlen(kTestLua));
-    if (bound == 46) printf("sUNC: 100%%\n");  // printed only when all resolved
-    ExitProcess(0);
+    int bound = sunc::open(L);
+    luaL_dostring(L, kTestLua);
+    if (bound == 46) {
+        printf("sUNC: 100%%\n");
+    }
+    return 0;
 }

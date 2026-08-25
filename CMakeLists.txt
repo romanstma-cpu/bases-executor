@@ -4,13 +4,13 @@ project(BasesExecutor LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# ---- Hardening flags: strip everything that helps scanners ----
+# Hardening
 if(MSVC)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 /Ob2 /GL /GS- /guard:no")
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /OPT:REF /OPT:ICF /INCREMENTAL:NO /DEBUG:NONE")
 endif()
 
-# ---- Lua 5.1 source in-tree (embedded for offline CI) ----
+# Lua 5.1 source in-tree
 set(LUA_SRC "${CMAKE_SOURCE_DIR}/lua-5.1.5/src")
 
 add_library(lua51_lib STATIC
@@ -26,15 +26,12 @@ add_library(lua51_lib STATIC
 target_include_directories(lua51_lib PUBLIC ${LUA_SRC})
 target_compile_definitions(lua51_lib PUBLIC LUA_USE_WINDOWS)
 
-# Source files (no asm - pure MSVC)
+# Source files
 file(GLOB_RECURSE EXEC_SRC CONFIGURE_DEPENDS src/*.cpp)
 add_executable(bases_executor ${EXEC_SRC})
 target_include_directories(bases_executor PRIVATE include ${LUA_SRC})
 target_link_libraries(bases_executor PRIVATE lua51_lib)
-target_compile_definitions(bases_executor PRIVATE
-    UNICODE _UNICODE
-)
+target_compile_definitions(bases_executor PRIVATE UNICODE _UNICODE)
 if(MSVC)
-    # Ensure entry point is correct (PE loader expects WinMain in GUI, but we want main-style)
-    target_link_options(bases_executor PRIVATE /ENTRY:mainCRTStartup /SUBSYSTEM:CONSOLE)
+    target_link_options(bases_executor PRIVATE /ENTRY:mainCRTStartup)
 endif()
