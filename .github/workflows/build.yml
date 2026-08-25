@@ -1,7 +1,7 @@
 name: Build Bases Executor
 
 on:
-  workflow_dispatch:    # manual trigger only
+  workflow_dispatch:
 
 jobs:
   compile:
@@ -11,12 +11,6 @@ jobs:
 
       - name: Install 7zip
         run: choco install 7zip -y
-
-      - name: Download Lua source
-        run: |
-          powershell -Command "Invoke-WebRequest -Uri 'https://www.lua.org/ftp/lua-5.1.5.tar.gz' -OutFile lua.tar.gz"
-          7z x lua.tar.gz -y
-          7z x lua\5.1.5.tar -y
 
       - name: Configure
         run: |
